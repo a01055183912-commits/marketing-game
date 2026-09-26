@@ -1,0 +1,9 @@
+{
+  "name": "campaign-planning-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LOTTE LIFT 3-2 campaign planning classroom web app (games + 11 worksheets + Case C reference)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "test": "node test/smoke.js" },
+  "engines": { "node": ">=18" }
+}
