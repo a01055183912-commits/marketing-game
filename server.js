@@ -1,4 +1,4 @@
-// 3-2 캠페인 기획 실습 웹앱 · Railway 서버 (외부 패키지 없이 Node 기본 기능만 사용)
+// 캠페인 기획 연습장 (3-2 캠페인 기획 실습) · Railway 서버 (외부 패키지 없이 Node 기본 기능만 사용)
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -68,15 +68,15 @@ const server = http.createServer(async (req, res) => {
     const bad = () => send(res, 400, { error: 'bad request' });
 
     if (p === '/api/sheet') {
-      if (!TEAM.test(b.team) || !/^w([1-9]|1[01])$/.test(b.ws || '') || !/^[a-z0-9_]{1,30}$/i.test(b.k || '')) return bad();
+      if (!TEAM.test(b.team) || !/^w([1-9]|1[0-2])$/.test(b.ws || '') || !/^[a-z0-9_]{1,30}$/i.test(b.k || '')) return bad();
       const t = (state.sheets[b.team] = state.sheets[b.team] || {});
       const w = (t[b.ws] = t[b.ws] || {});
       w[b.k] = str(b.v, 4000);
     } else if (p === '/api/team') {
       if (!TEAM.test(b.team)) return bad();
-      state.teams[b.team] = { name: str(b.name, 40), author: str(b.author, 80) };
+      state.teams[b.team] = { name: str(b.name, 40), author: str(b.author, 80), store: str(b.store, 60) };
     } else if (p === '/api/game') {
-      if (!TEAM.test(b.team) || !/^(bingo|words|slogan|fact|quiz)$/.test(b.g || '')) return bad();
+      if (!TEAM.test(b.team) || !/^(bingo|words|slogan|g[1-6])$/.test(b.g || '')) return bad();
       const g = (state.games[b.g] = state.games[b.g] || {});
       g[b.team] = cleanFlat(b.data);
     } else if (p === '/api/eval') {
@@ -95,7 +95,7 @@ const server = http.createServer(async (req, res) => {
       state.scores = { s: b.s.slice(0, 6).map((n) => Math.round(Number(n) || 0)) };
       while (state.scores.s.length < 6) state.scores.s.push(0);
     } else if (p === '/api/gamereset') {
-      if (!/^(bingo|words|slogan|fact|quiz)$/.test(b.g || '')) return bad();
+      if (!/^(bingo|words|slogan|g[1-6])$/.test(b.g || '')) return bad();
       state.games[b.g] = {};
       if (b.g === 'bingo') { state.control.bingoIdx = -1; state.control.bingoSeed = (state.control.bingoSeed || 1) + 1; }
     } else if (p === '/api/reset') {
@@ -121,4 +121,4 @@ const server = http.createServer(async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => console.log('campaign game on port ' + PORT));
+server.listen(PORT, '0.0.0.0', () => console.log('campaign practice app on port ' + PORT));

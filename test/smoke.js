@@ -15,7 +15,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   assert.equal((await fetch(U('/api/state?v=' + s.v))).status, 204);
   assert.equal((await post('/api/sheet', { team: 'team1', ws: 'w1', k: 'mainNum', v: '1500' })).status, 200);
   assert.equal((await post('/api/sheet', { team: 'team9', ws: 'w1', k: 'x', v: '1' })).status, 400);
-  assert.equal((await post('/api/sheet', { team: 'team1', ws: 'w12', k: 'x', v: '1' })).status, 400);
+  assert.equal((await post('/api/sheet', { team: 'team1', ws: 'w13', k: 'x', v: '1' })).status, 400);
   assert.equal((await post('/api/game', { team: 'team2', g: 'bingo', data: { marks: [1, 2], lines: 0, evil: { a: 1 } } })).status, 200);
   assert.equal((await post('/api/eval', { from: 'team1', to: 'team1', data: {} })).status, 400);
   assert.equal((await post('/api/eval', { from: 'team1', to: 'team2', data: { c1: 99, c2: 10, note: 'good' } })).status, 200);
