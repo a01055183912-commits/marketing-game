@@ -76,7 +76,7 @@ const server = http.createServer(async (req, res) => {
       if (!TEAM.test(b.team)) return bad();
       state.teams[b.team] = { name: str(b.name, 40), author: str(b.author, 80), store: str(b.store, 60) };
     } else if (p === '/api/game') {
-      if (!TEAM.test(b.team) || !/^(bingo|words|slogan|g[1-6])$/.test(b.g || '')) return bad();
+      if (!TEAM.test(b.team) || !/^(bingo|words|slogan|g[1-6]|o[1-9])$/.test(b.g || '')) return bad();
       const g = (state.games[b.g] = state.games[b.g] || {});
       g[b.team] = cleanFlat(b.data);
     } else if (p === '/api/eval') {
@@ -95,7 +95,7 @@ const server = http.createServer(async (req, res) => {
       state.scores = { s: b.s.slice(0, 6).map((n) => Math.round(Number(n) || 0)) };
       while (state.scores.s.length < 6) state.scores.s.push(0);
     } else if (p === '/api/gamereset') {
-      if (!/^(bingo|words|slogan|g[1-6])$/.test(b.g || '')) return bad();
+      if (!/^(bingo|words|slogan|g[1-6]|o[1-9])$/.test(b.g || '')) return bad();
       state.games[b.g] = {};
       if (b.g === 'bingo') { state.control.bingoIdx = -1; state.control.bingoSeed = (state.control.bingoSeed || 1) + 1; }
     } else if (p === '/api/reset') {

@@ -300,6 +300,11 @@ function renderTop() {
   const nav = NAV.concat(IS_TEACHER() ? [['teacher', '강사']] : []);
   $('#nav').innerHTML = nav.map(([k, l]) => `<button type="button" class="${view === k ? 'on' : ''}" data-view="${k}">${l}</button>`).join('');
   $('#teamSel').innerHTML = `<option value="">우리 조 선택</option>` + teamIds().map((t) => `<option value="${t}" ${TEAM === t ? 'selected' : ''}>${esc(teamName(t))}</option>`).join('');
+  const known = TERMS.filter((x) => P.known.has(x.t)).length; const played = ALL_GAME_IDS.filter((g) => P.best[g] != null).length;
+  const sheetPct = TEAM ? Math.round(SHEETS.reduce((a, x) => a + progress(TEAM, x.id), 0) / 12) : 0;
+  const bar = (label, val, pct, v) => `<button type="button" class="pbarx" data-view="${v}"><span>${label}</span><b class="num">${val}</b><i style="--p:${pct}%"></i></button>`;
+  $('#progStrip').innerHTML = bar('대본', `${P.seen.size}/56`, P.seen.size / 56 * 100, 'slides') + bar('용어', `${Math.round(known / TERMS.length * 100)}%`, known / TERMS.length * 100, 'glossary') +
+    bar('게임', `${played}/${ALL_GAME_IDS.length}`, played / ALL_GAME_IDS.length * 100, 'game') + bar('활동지', TEAM ? `${sheetPct}%` : '조 선택', sheetPct, 'sheet');
   $('#scoreStrip').innerHTML = teamIds().map((t) => `<span class="${t === TEAM ? 'me' : ''}">${teamNo(t)}조 <b class="num">${totalScore(t)}</b></span>`).join('') +
     (S.control.slide && !(view === 'slides' && cur.slide === S.control.slide) ? `<button type="button" class="follow" data-follow>선생님은 지금 ${S.control.slide}장 →</button>` : '');
   renderTimer();
@@ -338,7 +343,7 @@ setInterval(renderTimer, 1000);
 /* ───────────── 홈 ───────────── */
 function vHome() {
   const t = TEAM; const info = S.teams[t] || {};
-  const seen = P.seen.size, known = TERMS.filter((x) => P.known.has(x.t)).length, played = ['g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'bingo', 'words', 'slogan'].filter((g) => P.best[g] != null).length;
+  const seen = P.seen.size, known = TERMS.filter((x) => P.known.has(x.t)).length, played = ALL_GAME_IDS.filter((g) => P.best[g] != null).length;
   const sheetAvg = t ? SHEETS.reduce((a, s) => a + progress(t, s.id), 0) / 12 : 0;
   return `<section class="hero"><div><p class="eyebrow">롯데 LIFT 유통·리테일 · 부산3반 · 상품 마케팅 이해 03 · 3-2</p>
       <h2>캠페인 기획 <em>연습장</em></h2>
@@ -353,7 +358,7 @@ function vHome() {
   <section class="progress3">
     <button type="button" class="card stat" data-view="slides"><b class="num">${seen}<small>/56</small></b><span>본 장</span><i style="--p:${seen / 56 * 100}%"></i></button>
     <button type="button" class="card stat" data-view="glossary"><b class="num">${Math.round(known / TERMS.length * 100)}<small>%</small></b><span>아는 용어 ${known}/${TERMS.length}</span><i style="--p:${known / TERMS.length * 100}%"></i></button>
-    <button type="button" class="card stat" data-view="game"><b class="num">${played}<small>/9</small></b><span>해 본 게임</span><i style="--p:${played / 9 * 100}%"></i></button>
+    <button type="button" class="card stat" data-view="game"><b class="num">${played}<small>/${ALL_GAME_IDS.length}</small></b><span>해 본 게임</span><i style="--p:${played / ALL_GAME_IDS.length * 100}%"></i></button>
     ${t ? `<button type="button" class="card stat" data-view="sheet"><b class="num">${Math.round(sheetAvg)}<small>%</small></b><span>우리 조 활동지</span><i style="--p:${sheetAvg}%"></i></button>` : ''}
   </section>
   <section><h3 class="sec">강의를 여는 세 가지 질문</h3><div class="qs">${INTRO.qs.map((q) => `<article class="card"><h4>${esc(q.q)}</h4><p>${esc(q.a)}</p></article>`).join('')}</div>
@@ -421,6 +426,7 @@ function vSlides() {
       ${s.next ? `<p class="nextline"><small>넘어가는 한마디</small> ${esc(s.next)} <button type="button" class="copyone" data-copy="next" title="넘어가는 한마디 복사">복사</button></p>` : ''}`}
       ${sh ? `<div class="row slidelinks">${sh.slide === s.no ? `<button type="button" class="btn" data-gosheet="${sh.id}">실습 ${sh.no} 활동지 열기 (${sh.min}분)</button>${IS_TEACHER() ? `<button type="button" class="btn ghost" data-timer="${sh.id}">${sh.min}분 타이머 시작</button>` : ''}<button type="button" class="btn ghost" data-goslide="${sh.ex}">예시 답안 장 (${sh.ex}장)</button>` : `<button type="button" class="btn ghost" data-gosheet="${sh.id}">실습 ${sh.no} 활동지에서 비교하기</button>`}</div>` : ''}
       ${terms.length ? `<div class="chips"><small>이 장의 용어</small>${terms.map((t) => `<button type="button" class="chip sm" data-term="${esc(t)}">${esc(t)}</button>`).join('')}</div><div id="termPop"></div>` : ''}
+      ${LGAMES.filter((g) => g.at === s.no).length ? `<div class="gamecall"><b>🎮 이 장이 끝나면 게임</b>${LGAMES.filter((g) => g.at === s.no).map((g) => `<button type="button" class="btn" data-game="${g.id}">${esc(g.title)} (${GTYPE[g.type]}) →</button>`).join('')}</div>` : ''}
       <footer class="slidefoot">
         <button type="button" class="btn ghost" data-goslide="${Math.max(1, s.no - 1)}" ${s.no === 1 ? 'disabled' : ''}>← ${s.no > 1 ? s.no - 1 + '장' : ''}</button>
         <button type="button" class="btn ${P.seen.has(s.no) ? 'ghost' : ''}" data-act="seen">${P.seen.has(s.no) ? '✓ 다 봤어요' : '다 봤어요'}</button>
@@ -453,57 +459,86 @@ function vGlossary() {
 }
 
 /* ───────────── 게임 ───────────── */
-const GAME_LIST = [['g1', '가이드 게임 1'], ['g2', '가이드 게임 2'], ['g3', '가이드 게임 3'], ['g4', '가이드 게임 4'], ['g5', '가이드 게임 5'], ['g6', '가이드 게임 6'], ['bingo', '실시간 · 강사 진행'], ['words', '글자 조합 A'], ['slogan', '글자 조합 B']];
 const GTITLE = { bingo: '용어 빙고', words: '용어 글자 조합', slogan: '슬로건 조립' };
 const GINFO = { bingo: '강사가 용어 뜻을 한 장씩 공개하면 맞는 칸을 누릅니다. 3줄 먼저!', words: '섞인 음절을 순서대로 놓아 용어를 완성합니다.', slogan: '어절 카드로 슬로건을 조립하고, 우리 조 슬로건을 만들어 활동지 ④로 보냅니다.' };
+const CLASS_GAMES = [['bingo', '실시간 · 강사 진행'], ['words', '글자 조합 A'], ['slogan', '글자 조합 B']];
+const LG = (id) => LGAMES.find((g) => g.id === id);
+const ALL_GAME_IDS = LGAMES.map((g) => g.id).concat(CLASS_GAMES.map((x) => x[0]));
+const SCORE_IDS = LGAMES.filter((g) => g.type !== 'calc').map((g) => g.id).concat(['words', 'slogan']);
+const GTYPE = { match: '짝짓기', order: '순서대로 누르기', calc: '계산기' };
 const gdata = (g, t = TEAM) => ((S.games[g] || {})[t]) || {};
 function bingoPoints(t) {
   const g = S.games.bingo || {}; const me = g[t] || {};
   const done = Object.entries(g).filter(([, x]) => x.doneAt).sort((a, b) => a[1].doneAt - b[1].doneAt).map(([k]) => k); const r = done.indexOf(t);
   return (me.lines || 0) * 5 + (r === 0 ? 30 : r === 1 ? 20 : r === 2 ? 10 : 0);
 }
-const gameScore = (t) => bingoPoints(t) + ['g1', 'g2', 'g3', 'g4', 'g5', 'words', 'slogan'].reduce((a, g) => a + (gdata(g, t).score || 0), 0);
+const gameScore = (t) => bingoPoints(t) + SCORE_IDS.reduce((a, g) => a + (gdata(g, t).score || 0), 0);
 const totalScore = (t) => gameScore(t) + (S.scores.s[teamNo(t) - 1] || 0);
 const needTeam = () => `<div class="card empty"><p>상단에서 <b>우리 조</b>를 먼저 고르십시오.</p></div>`;
+const hl = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+const lgRows = (g) => g.rows || GAME(g.guide).rows;
+const bestPill = (id) => P.best[id] == null ? '' : `<span class="pill ok">${id === 'g6' ? '해 봄' : '최고 ' + P.best[id] + (id === 'bingo' ? '줄' : '점')}</span>`;
 
 function vGame() {
   if (!cur.game) {
-    return `<div class="pagehead"><h2>게임</h2><p class="muted">가이드 5부의 워밍업 게임 6종 + 수업용 빙고 · 글자 조합. 조를 고르면 점수가 조 점수판에 더해집니다.</p></div>
-    <div class="gamegrid">${GAME_LIST.map(([id, tag]) => { const g = GAME(id); return `<button type="button" class="card gtile" data-game="${id}"><small>${tag}${g ? ' · ' + esc(g.review) : ''}</small><b>${esc(g ? g.title : GTITLE[id])}</b><span class="muted">${esc(g ? g.how : GINFO[id])}</span>${P.best[id] != null ? `<span class="pill ok">${id === 'g6' ? '해 봄' : '최고 ' + P.best[id] + (id === 'bingo' ? '줄' : '점')}</span>` : ''}</button>`; }).join('')}</div>`;
+    const flow = LGAMES.slice().sort((a, b) => a.at - b.at);
+    return `<div class="pagehead"><h2>게임</h2><p class="muted">강의 중 해당 장이 끝나면 바로 하는 게임입니다. 강사 말풍선 → 문제 → 한 줄 기억 → "다음 장"으로 강의가 이어집니다.</p></div>
+    <h3 class="sec">강의 흐름 게임</h3>
+    <div class="gamegrid">${flow.map((g) => `<button type="button" class="card gtile" data-game="${g.id}"><small>${g.at}장 뒤 · ${GTYPE[g.type]}${g.guide ? ' · 가이드 게임 ' + g.guide.slice(1) : ''}</small><b>${esc(g.title)}</b><span class="muted">${esc(g.say.replace(/\*\*/g, ''))}</span>${bestPill(g.id)}</button>`).join('')}</div>
+    <h3 class="sec">수업 게임</h3>
+    <div class="gamegrid">${CLASS_GAMES.map(([id, tag]) => `<button type="button" class="card gtile" data-game="${id}"><small>${tag}</small><b>${esc(GTITLE[id])}</b><span class="muted">${esc(GINFO[id])}</span>${bestPill(id)}</button>`).join('')}</div>`;
   }
-  const body = { g1: gChoice, g3: gChoice, g4: gChoice, g5: gChoice, g2: gMemory, g6: gCalc, bingo: gBingo, words: gWords, slogan: gSlogan }[cur.game]();
+  if (LG(cur.game)) return `<div class="gtop"><button type="button" class="btn sm ghost" data-game="">← 게임 목록</button></div>${lgPage(LG(cur.game))}`;
+  const body = { bingo: gBingo, words: gWords, slogan: gSlogan }[cur.game]();
   return `<div class="gtop"><button type="button" class="btn sm ghost" data-game="">← 게임 목록</button></div>${body}`;
 }
-/* 선택형 (게임 1·3·4·5) */
-const CHOICE_OPTS = { g1: ['캠페인', '프로모션'], g3: TRENDS, g4: ['인지', '관심', '행동', '전환', '관계'], g5: ['인사이트', '그냥 추측'] };
-let CQ = null;
-function gChoice() {
-  const g = GAME(cur.game);
-  if (!CQ || CQ.id !== g.id) return `<div class="gamehead"><div><p class="eyebrow">${esc(g.review)}</p><h2>${esc(g.title)}</h2><p class="muted">${esc(g.how)} · ${g.rows.length}문제 × 10점</p></div></div><button type="button" class="btn big" data-act="cqStart">시작</button>`;
-  if (CQ.i >= CQ.order.length) return `<div class="card win"><h3>${esc(g.title)} · <span class="num">${CQ.score}</span>점</h3><p>${CQ.score / 10} / ${g.rows.length} 정답</p><div class="row"><button type="button" class="btn" data-act="cqStart">다시 하기</button><button type="button" class="btn ghost" data-game="">게임 목록</button></div></div>`;
-  const [q, a, why] = g.rows[CQ.order[CQ.i]];
-  return `<div class="gamehead"><div><h2>${esc(g.title)} · ${CQ.i + 1} / ${g.rows.length}</h2><p class="muted">점수 <b class="num">${CQ.score}</b></p></div></div>
-    <div class="clue"><p>${esc(q)}</p></div>
-    <div class="tags">${CHOICE_OPTS[g.id].map((o) => `<button type="button" class="tagpick ${CQ.ans ? (o === a ? 'right' : o === CQ.ans ? 'wrong' : '') : ''}" data-cq="${esc(o)}" ${CQ.ans ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>
-    ${CQ.ans ? `<div class="card ${CQ.ans === a ? 'win' : 'lose'}"><b>${CQ.ans === a ? '정답' : '정답은 ' + esc(a)}</b> — ${esc(why)}<div class="row"><button type="button" class="btn" data-act="cqNext">다음</button></div></div>` : ''}`;
+/* 강의 흐름 게임 (짝짓기 · 순서 · 계산기) */
+let LS = null;
+function lgState(g) {
+  if (!LS || LS.id !== g.id) {
+    let tiles = g.items ? shuffle(g.items) : null;
+    if (tiles && tiles.join() === g.items.join()) tiles = tiles.reverse();
+    LS = { id: g.id, picks: {}, trail: [], miss: 0, tiles, saved: false };
+  }
+  return LS;
 }
-/* 메모리 (게임 2) */
-let MM = null;
-function gMemory() {
-  const g = GAME('g2');
-  if (!MM) return `<div class="gamehead"><div><p class="eyebrow">${esc(g.review)}</p><h2>${esc(g.title)}</h2><p class="muted">${esc(g.how)} 적게 뒤집을수록 점수가 높습니다(최고 100점).</p></div></div><button type="button" class="btn big" data-act="mmStart">시작</button>`;
-  const done = MM.matched.size === MM.cards.length;
-  return `<div class="gamehead"><div><h2>${esc(g.title)}</h2><p class="muted">뒤집은 횟수 <b class="num">${MM.moves}</b> · 맞춘 짝 ${MM.matched.size / 2}/${g.rows.length}</p></div></div>
-    <div class="memory">${MM.cards.map((c, i) => { const open = MM.open.includes(i) || MM.matched.has(i); return `<button type="button" class="mcard ${open ? 'open' : ''} ${MM.matched.has(i) ? 'done' : ''}" data-mm="${i}">${open ? esc(c.txt) : '?'}</button>`; }).join('')}</div>
-    ${done ? `<div class="card win"><b>완성!</b> ${MM.score}점 <button type="button" class="btn sm" data-act="mmStart">다시 하기</button></div>` : ''}`;
+function lgResult(g) {
+  const st = lgState(g);
+  if (g.type === 'match') { const rows = lgRows(g); const ok = rows.filter((r, i) => st.picks[i] === r[1]).length; return { done: Object.keys(st.picks).length === rows.length, score: ok * 10, text: `${ok} / ${rows.length} 정답 · ${ok * 10}점` }; }
+  if (g.type === 'order') { const score = Math.max(5, 30 - st.miss * 5); return { done: st.trail.length === g.items.length, score, text: `실수 ${st.miss}번 · ${score}점` }; }
+  return { done: true, score: 0, text: '' };
 }
-/* 계산기 (게임 6) */
+function lgFinish(g) {
+  const st = lgState(g); const r = lgResult(g); if (!r.done || st.saved) return; st.saved = true;
+  best(g.id, r.score); if (r.score > (gdata(g.id).score || 0)) saveGame(g.id, { score: r.score });
+}
+function lgPage(g) {
+  const st = lgState(g); let body = '';
+  if (g.type === 'match') {
+    body = `<div class="mrows">${lgRows(g).map((r, i) => { const p = st.picks[i]; return `<div class="mrow ${p ? (p === r[1] ? 'ok' : 'bad') : ''}"><div class="mq">${esc(r[0])}${p ? `<small>${p === r[1] ? '✓ 정답' : '✗ 정답은 ' + esc(r[1])} — ${esc(r[2])}</small>` : ''}</div>
+      <div class="mopts">${g.opts.map((o) => `<button type="button" class="mopt ${p ? (o === r[1] ? 'right' : o === p ? 'wrong' : '') : ''}" data-lg="${i}" data-opt="${esc(o)}" ${p ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div></div>`; }).join('')}</div>`;
+  } else if (g.type === 'order') {
+    body = `<div class="obtns" id="obtns">${st.tiles.map((x) => `<button type="button" class="obtn ${st.trail.includes(x) ? 'used' : ''}" data-ord="${esc(x)}" ${st.trail.includes(x) ? 'disabled' : ''}>${st.trail.includes(x) ? `<b>${st.trail.indexOf(x) + 1}</b> ` : ''}${esc(x)}</button>`).join('')}</div>
+      ${st.trail.length ? `<p class="otrail">${st.trail.map(esc).join(' → ')}${st.trail.length < g.items.length ? ' → …' : ''}</p>` : ''}`;
+  } else body = calcBody();
+  const r = lgResult(g); const nextSay = SL(g.at).next;
+  return `<article class="lgame">
+    <header class="lghead"><div><p class="eyebrow">${g.at}장 뒤 · ${GTYPE[g.type]}${g.guide ? ' · 가이드 게임 ' + g.guide.slice(1) : ''}</p><h2>${esc(g.title)}</h2></div><button type="button" class="btn sm ghost" data-goslide="${g.at}">← ${g.at}장으로</button></header>
+    <div class="say"><small>강사</small><p>${hl(g.say)}</p></div>
+    <details class="tnotes"><summary>강사 노트</summary><ul>${g.note.map((n) => `<li>${esc(n)}</li>`).join('')}</ul></details>
+    <hr class="lgsep"><h3 class="ask">${esc(g.ask)}</h3>${body}
+    ${r.done ? `<section class="remember"><small>한 줄 기억</small><p class="rline">${esc(g.remember)}</p>${r.text ? `<p class="rscore">${r.text}</p>` : ''}
+      ${nextSay ? `<blockquote class="nextsay">넘어가는 한마디: "${esc(nextSay)}"</blockquote>` : ''}
+      <div class="row"><button type="button" class="btn dark" data-goslide="${g.next}">다음: ${g.next}장 →</button>${g.type !== 'calc' ? '<button type="button" class="btn ghost" data-act="lgRetry">다시 하기</button>' : ''}</div></section>` : ''}
+  </article>`;
+}
+/* 계산기 (가이드 게임 6) */
 const CALC0 = { followers: 120000, rate: 8, ad: 50000, inf: 40000, goal: 100000, budget: 500000000, members: 5000, prev: 2300 };
 const CALC = { ...CALC0 };
-function gCalc() {
-  const g = GAME('g6'); const c = CALC; const organic = c.followers * c.rate / 100; const total = organic + c.ad + c.inf;
+function calcBody() {
+  const c = CALC; const organic = c.followers * c.rate / 100; const total = organic + c.ad + c.inf;
   const sl = (k, label, min, max, step, fmt) => `<label class="slider"><span>${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${c[k]}" data-calc-k="${k}"><b class="num">${fmt(c[k])}</b></label>`;
-  return `<div class="gamehead"><div><p class="eyebrow">${esc(g.review)}</p><h2>${esc(g.title)}</h2><p class="muted">${esc(g.how)}</p></div><button type="button" class="btn ghost" data-act="calcReset">PPT 케이스 값으로</button></div>
+  return `<div class="row"><button type="button" class="btn sm ghost" data-act="calcReset">PPT 케이스 값으로</button></div>
     <div class="calcgame"><section class="card"><h4>도달</h4>${sl('followers', '인스타 팔로워', 0, 300000, 5000, won)}${sl('rate', '도달률', 1, 20, 1, (v) => v + '%')}${sl('ad', '광고 도달', 0, 150000, 5000, won)}${sl('inf', '인플루언서 도달', 0, 150000, 5000, won)}${sl('goal', '도달 목표', 10000, 300000, 10000, won)}</section>
       <section class="card"><h4>획득 비용</h4>${sl('budget', '총예산', 100000000, 1000000000, 50000000, man)}${sl('members', '신규 회원 목표', 1000, 10000, 100, won)}${sl('prev', '지난번 신규 회원', 500, 10000, 100, won)}</section></div>
     <div class="calc big">
@@ -738,7 +773,7 @@ function tGame() {
       <div class="row"><button type="button" class="btn ghost" data-act="bingoPrev" ${idx < 0 ? 'disabled' : ''}>← 이전</button><button type="button" class="btn big" data-act="bingoNext" ${idx >= bt.length - 1 ? 'disabled' : ''}>다음 뜻 카드 공개 →</button><button type="button" class="btn ghost" data-act="bingoReset">새 판</button></div>
       <ol class="rank">${rank.map((r) => `<li><b>${esc(teamName(r.t))}</b> <span class="num">${r.l}줄</span>${r.d ? ' <span class="pill ok">3줄 완성</span>' : ''} <span class="muted">· ${bingoPoints(r.t)}점</span></li>`).join('')}</ol></section>
     <section class="card"><h3>게임 기록 (조 최고점)</h3><div class="tblwrap"><table class="ws res"><thead><tr><th>게임</th>${teamIds().map((t) => `<th>${teamNo(t)}조</th>`).join('')}<th></th></tr></thead><tbody>
-      ${['g1', 'g2', 'g3', 'g4', 'g5', 'words', 'slogan'].map((g) => `<tr><th>${esc(GAME(g) ? GAME(g).title : GTITLE[g])}</th>${col(g)}<td><button type="button" class="btn sm ghost" data-greset="${g}">지우기</button></td></tr>`).join('')}</tbody></table></div></section>`;
+      ${SCORE_IDS.map((g) => `<tr><th>${esc(LG(g) ? LG(g).title : GTITLE[g])}</th>${col(g)}<td><button type="button" class="btn sm ghost" data-greset="${g}">지우기</button></td></tr>`).join('')}</tbody></table></div></section>`;
 }
 function tBoard() {
   let html = `<div class="tblwrap"><table class="ws res matrix"><thead><tr><th>조</th>${SHEETS.map((s) => `<th title="${esc(s.title)}">${s.no}</th>`).join('')}<th>힌트</th></tr></thead><tbody>
@@ -791,22 +826,22 @@ document.addEventListener('click', async (e) => {
   }
   if (ds.copyline != null) { const x = SL(cur.slide).script[Number(ds.copyline)]; return copyText(x.say, '문장을'); }
   if (ds.team) { TEAM = ds.team; store.set('cp2_team', TEAM); return render(); }
-  if (ds.game !== undefined) { cur.game = ds.game || null; if (view !== 'game') { view = 'game'; store.set('cp2_view', view); } CQ = null; MM = null; WQ = null; SQ = null; render(); return scrollTo(0, 0); }
+  if (ds.game !== undefined) { cur.game = ds.game || null; if (view !== 'game') { view = 'game'; store.set('cp2_view', view); } LS = null; WQ = null; SQ = null; if (LG(cur.game) && LG(cur.game).type === 'calc' && P.best.g6 == null) best('g6', 1); render(); return scrollTo(0, 0); }
   if (ds.sheet) { cur.sheet = ds.sheet; store.set('cp2_sheet', ds.sheet); showModel = false; lastField = null; render(); return scrollTo(0, 0); }
   if (ds.gosheet) { cur.sheet = ds.gosheet; store.set('cp2_sheet', ds.gosheet); showModel = false; return go('sheet'); }
   if (ds.term) { const t = TERMS.find((x) => x.t === ds.term); $('#termPop').innerHTML = `<div class="card termpop"><b>${esc(t.t)}</b> <small class="muted">${esc(t.cat)}</small><p>${esc(t.d)}</p><label class="chk"><input type="checkbox" data-know="${esc(t.t)}" ${P.known.has(t.t) ? 'checked' : ''}><span>알아요</span></label></div>`; return; }
   if (ds.know !== undefined) { P.known.add(ds.know); saveP(); card.flip = false; return render(); }
   if (ds.gcat !== undefined) { cur.gcat = ds.gcat; card = { i: 0, flip: false }; return render(); }
   if (ds.gmode) { cur.gmode = ds.gmode; card = { i: 0, flip: false }; return render(); }
-  if (ds.cq) { const [, a] = GAME(CQ.id).rows[CQ.order[CQ.i]]; CQ.ans = ds.cq; if (ds.cq === a) CQ.score += 10; return render(); }
-  if (ds.mm != null) {
-    const i = Number(ds.mm); if (MM.lock || MM.open.includes(i) || MM.matched.has(i)) return;
-    MM.open.push(i);
-    if (MM.open.length === 2) { MM.moves++; const [x, y] = MM.open;
-      if (MM.cards[x].pair === MM.cards[y].pair) { MM.matched.add(x); MM.matched.add(y); MM.open = [];
-        if (MM.matched.size === MM.cards.length) { MM.score = Math.max(10, 100 - (MM.moves - 6) * 5); best('g2', MM.score); if (MM.score > (gdata('g2').score || 0)) saveGame('g2', { score: MM.score }); } }
-      else { MM.lock = true; setTimeout(() => { MM.open = []; MM.lock = false; render(); }, 900); } }
-    return render();
+  if (ds.lg != null) {
+    const g = LG(cur.game); const st = lgState(g); const i = Number(ds.lg); if (st.picks[i]) return;
+    st.picks[i] = ds.opt; lgFinish(g); const y = scrollY; render(); scrollTo(0, y); return;
+  }
+  if (ds.ord) {
+    const g = LG(cur.game); const st = lgState(g);
+    if (ds.ord === g.items[st.trail.length]) { st.trail.push(ds.ord); lgFinish(g); const y = scrollY; render(); scrollTo(0, y); }
+    else { st.miss++; b.classList.add('shake'); setTimeout(() => b.classList.remove('shake'), 400); toast('순서가 달라요 · 다시 생각해 보세요'); }
+    return;
   }
   if (ds.cell != null) return bingoTap(Number(ds.cell));
   if (ds.wtile != null) { const t = WQ.tiles.find((x) => x.id === Number(ds.wtile)); if (t && !WQ.placed.includes(t)) { WQ.placed.push(t); render(); wCheck(); } return; }
@@ -837,9 +872,7 @@ document.addEventListener('click', async (e) => {
     syncSlide: () => { control('slide', cur.slide); toast(`학생 화면을 ${cur.slide}장으로 맞췄습니다`); },
     unsync: () => control('slide', 0),
     flip: () => { card.flip = !card.flip; render(); }, cardNext: () => { card.i++; card.flip = false; render(); },
-    cqStart: () => { CQ = { id: cur.game, order: shuffle(GAME(cur.game).rows.map((x, i) => i)), i: 0, score: 0, ans: null }; render(); },
-    cqNext: () => { CQ.i++; CQ.ans = null; if (CQ.i >= CQ.order.length) { best(CQ.id, CQ.score); if (CQ.score > (gdata(CQ.id).score || 0)) saveGame(CQ.id, { score: CQ.score }); } render(); },
-    mmStart: () => { const rows = GAME('g2').rows; MM = { cards: shuffle(rows.flatMap((r, i) => [{ txt: r[0], pair: i }, { txt: r[1], pair: i }])), open: [], matched: new Set(), moves: 0, score: 0, lock: false }; render(); },
+    lgRetry: () => { LS = null; render(); },
     calcReset: () => { Object.assign(CALC, CALC0); render(); },
     wStart: () => { WQ = { list: shuffle(WORDS).slice(0, 10), i: 0, score: 0 }; wSetup(); render(); }, wHint: () => { WQ.hint = true; render(); }, wSkip: wAdvance,
     sStart: () => { SQ = { i: 0, score: 0, placed: [], tiles: [], words: [], free: false }; sSetup(); render(); },
