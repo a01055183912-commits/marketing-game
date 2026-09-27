@@ -43,7 +43,7 @@ let V = 0;
 let TEAM = store.get('cp2_team', '');
 const IS_TEACHER = () => location.hash === '#teacher';
 let view = store.get('cp2_view', 'home');
-let cur = { slide: store.get('cp2_slide', 1), sheet: store.get('cp2_sheet', 'w1'), game: null, ref: 'w1', gcat: '', gq: '', gmode: 'list' };
+let cur = { ppt: store.get('cp2_ppt', 1), pq: '', lb: 'kid', lbStep: 0, slide: store.get('cp2_slide', 1), sheet: store.get('cp2_sheet', 'w1'), game: null, ref: 'w1', gcat: '', gq: '', gmode: 'list' };
 const P = { seen: new Set(store.get('cp2_seen', [])), known: new Set(store.get('cp2_known', [])), best: store.get('cp2_best', {}), hide: store.get('cp2_hide', false), big: false };
 const saveP = () => { store.set('cp2_seen', [...P.seen]); store.set('cp2_known', [...P.known]); store.set('cp2_best', P.best); store.set('cp2_hide', P.hide); };
 const pending = {}; const timers = {};
@@ -273,7 +273,7 @@ function gen11(t) {
   const vis = ['p1', 'p2', 'p3'].map((p) => num(w8['vis_' + p])).reduce((a, c) => a + c, 0);
   const kp = ['aw', 'in', 'ac', 'cv', 'lo'].filter((r) => w10[r + '_pri'] === '주').map((r) => `${w10[r + '_kpi'] || ''} ${w10[r + '_goal'] || ''}`.trim()).join(' · ');
   return {
-    tr: pk ? J(`${w1[pk + '_trend'] || ''}(${cut(w1[pk + '_signal'], 50)})`, w1.type && `→ ${w1.type}`, w1.bench && `· ${w1.bench} 벤치마킹`) : '',
+    tr: pk ? J(`${w1[pk + '_trend'] || ''}(${cut(w1[pk + '_signal'], 50)})`, w1.type && `→ ${w1.type}`, w1.bench && `(${cut(w1.bench.split(' — ')[0], 30)} 벤치마킹)`) : '',
     tg: J(mk && `${w2[mk + '_target'] || ''} ·`, w2.age_A && `${w2.age_A} ·`, w3.pick && w3['i' + w3.pick + '_text'] && `"${cut(w3['i' + w3.pick + '_text'], 60)}"`),
     nm: finalSlogan(t),
     st: [w5.p1, w5.p2, w5.p3, w5.p4].some(Boolean) ? [w5.p1, w5.p2, w5.p3, w5.p4].map((x) => cut(x, 40)).join(' → ') : '',
@@ -295,7 +295,7 @@ function posterHTML(t) {
 }
 
 /* ───────────── 틀 ───────────── */
-const NAV = [['home', '홈'], ['slides', '장별 대본'], ['glossary', '용어사전'], ['game', '게임'], ['guide', '실습 가이드'], ['sheet', '캠페인 활동지'], ['compare', '프로모션 vs 캠페인'], ['present', '발표·평가']];
+const NAV = [['home', '홈'], ['ppt', '강의 PPT'], ['slides', '장별 대본'], ['glossary', '용어사전'], ['game', '게임'], ['guide', '실습 가이드'], ['sheet', '캠페인 활동지'], ['compare', '프로모션 vs 캠페인'], ['present', '발표·평가']];
 function renderTop() {
   const nav = NAV.concat(IS_TEACHER() ? [['teacher', '강사']] : []);
   $('#nav').innerHTML = nav.map(([k, l]) => `<button type="button" class="${view === k ? 'on' : ''}" data-view="${k}">${l}</button>`).join('');
@@ -306,7 +306,7 @@ function renderTop() {
   $('#progStrip').innerHTML = bar('대본', `${P.seen.size}/56`, P.seen.size / 56 * 100, 'slides') + bar('용어', `${Math.round(known / TERMS.length * 100)}%`, known / TERMS.length * 100, 'glossary') +
     bar('게임', `${played}/${ALL_GAME_IDS.length}`, played / ALL_GAME_IDS.length * 100, 'game') + bar('활동지', TEAM ? `${sheetPct}%` : '조 선택', sheetPct, 'sheet');
   $('#scoreStrip').innerHTML = teamIds().map((t) => `<span class="${t === TEAM ? 'me' : ''}">${teamNo(t)}조 <b class="num">${totalScore(t)}</b></span>`).join('') +
-    (S.control.slide && !(view === 'slides' && cur.slide === S.control.slide) ? `<button type="button" class="follow" data-follow>선생님은 지금 ${S.control.slide}장 →</button>` : '');
+    (S.control.slide && !(view === 'slides' && cur.slide === S.control.slide) ? `<button type="button" class="follow" data-follow>선생님은 지금 ${S.control.slide}장 →</button>` : '') + (num(S.control.pptSlide) && !(view === 'ppt' && cur.ppt === num(S.control.pptSlide)) ? `<button type="button" class="follow" data-goppt="${num(S.control.pptSlide)}">선생님 PPT ${num(S.control.pptSlide)}쪽 →</button>` : '');
   renderTimer();
 }
 function go(v) { view = v; store.set('cp2_view', v); P.big = false; if (v === 'game') cur.game = null; render(); window.scrollTo(0, 0); }
@@ -314,7 +314,7 @@ function render() {
   if (view === 'teacher' && !IS_TEACHER()) view = 'home';
   document.body.classList.toggle('big', P.big && view === 'slides');
   renderTop();
-  const fn = { home: vHome, slides: vSlides, glossary: vGlossary, game: vGame, guide: vGuide, sheet: vSheet, compare: vCompare, present: vPresent, teacher: vTeacher }[view] || vHome;
+  const fn = { ppt: vPpt, home: vHome, slides: vSlides, glossary: vGlossary, game: vGame, guide: vGuide, sheet: vSheet, compare: vCompare, present: vPresent, teacher: vTeacher }[view] || vHome;
   $('#main').innerHTML = fn();
   if (view === 'sheet') { refreshSheet(); autosizeAll(); }
 }
@@ -348,7 +348,8 @@ function vHome() {
   return `<section class="hero"><div><p class="eyebrow">롯데 LIFT 유통·리테일 · 부산3반 · 상품 마케팅 이해 03 · 3-2</p>
       <h2>캠페인 기획 <em>연습장</em></h2>
       <p class="lead">장별 대본으로 배우고, 용어와 게임으로 익히고, 활동시트 ①~⑫로 우리 조 캠페인을 한 장까지 완성합니다. 실습 케이스 수치는 PPT에 표기된 교육용 가상 데이터입니다.</p>
-      <div class="row"><button type="button" class="btn big" data-goslide="${cur.slide}">${seen ? `이어서 보기 · ${cur.slide}장` : '1장부터 시작'}</button><button type="button" class="btn big ghost" data-view="sheet">활동지 쓰기</button></div></div>
+      <div class="row"><button type="button" class="btn big" data-goppt="${cur.ppt}">📑 강의 PPT ${cur.ppt > 1 ? cur.ppt + '쪽부터' : '보기'}</button><button type="button" class="btn big ghost" data-goslide="${cur.slide}">${seen ? `장별 대본 · ${cur.slide}장` : '장별 대본'}</button><button type="button" class="btn big ghost" data-view="sheet">활동지 쓰기</button></div>
+      <p class="muted small">활동지마다 <b>📘 쉽게 이해하기</b>가 있어요: 한마디로 · 따라 하기(PPT 걸음) · 예시는 왜 이렇게? · 막힐 때. 파란 <span class="pg">44쪽</span> 표시를 누르면 그 PPT 장이 바로 열립니다.</p></div>
     <div class="card teamcard"><h3>우리 조</h3>
       <div class="teamgrid">${teamIds().map((x) => `<button type="button" class="tpick ${x === t ? 'on' : ''}" data-team="${x}">${teamNo(x)}조${S.teams[x] && S.teams[x].name ? `<small>${esc(S.teams[x].name)}</small>` : ''}</button>`).join('')}</div>
       ${t ? `<label class="field"><span>팀명</span><input type="text" id="tName" value="${esc(info.name || '')}" placeholder="예: MOOD SHIFT"></label>
@@ -412,7 +413,7 @@ function vSlides() {
     <nav class="slidenav">${list}</nav>
     <article class="slide">
       <header class="slidehead"><div><p class="eyebrow">${esc(g.t)} · ${s.no} / 56</p><h2>${s.no}장 · ${esc(s.title)}</h2></div>
-        <div class="row"><button type="button" class="btn sm ghost" data-act="toggleHide">${P.hide ? '대본 보이기' : '대본 가리기 (연습)'}</button><button type="button" class="btn sm ghost" data-act="toggleBig">${P.big ? '작게 보기' : '크게 보기 (강의 모드)'}</button>
+        <div class="row">${GUIDE2DECK[s.no] ? `<button type="button" class="btn sm" data-ppt="${GUIDE2DECK[s.no]}">📑 PPT ${GUIDE2DECK[s.no]}쪽 보기</button>` : ''}<button type="button" class="btn sm ghost" data-act="toggleHide">${P.hide ? '대본 보이기' : '대본 가리기 (연습)'}</button><button type="button" class="btn sm ghost" data-act="toggleBig">${P.big ? '작게 보기' : '크게 보기 (강의 모드)'}</button>
         ${IS_TEACHER() ? `<button type="button" class="btn sm" data-act="syncSlide">학생 화면을 ${s.no}장으로</button>` : ''}</div></header>
       ${locked ? '' : `<div class="copybar"><span>복사</span><button type="button" class="btn sm ghost" data-copy="all">📋 이 장 전체</button><button type="button" class="btn sm ghost" data-copy="script">📋 대본만</button><button type="button" class="btn sm ghost" data-copy="core">📋 핵심 한 줄</button><button type="button" class="btn sm ghost" data-copy="stage">📋 ${esc(g.t)} (${g.from}~${g.to}장)</button><button type="button" class="btn sm ghost" data-copy="allScript">📋 1~56장 대본 전체</button></div>`}
       ${locked ? `<div class="card lockbox"><b>예시 답안은 선생님이 공개하면 볼 수 있습니다.</b><p class="muted">먼저 우리 조 활동지를 채우십시오.</p>${sh ? `<button type="button" class="btn" data-gosheet="${sh.id}">실습 ${sh.no} 활동지로</button>` : ''}</div>` : `
@@ -639,9 +640,10 @@ function vSheet() {
   return `<div class="sheetlayout">
   <nav class="sheetnav">${SHEETS.map((s) => `<button type="button" class="${s.id === sh.id ? 'on' : ''}" data-sheet="${s.id}"><span class="no">${s.no}</span><span class="t">${esc(s.title)}</span><span class="pbar"><i style="width:${progress(TEAM, s.id)}%"></i></span></button>`).join('')}</nav>
   <article class="sheet" id="sheet">
-    <header class="sheethead"><div><p class="eyebrow">실습 ${sh.no} · 워크시트 · ${sh.min}분 · <button type="button" class="linkbtn" data-goslide="${sh.slide}">${sh.slide}장 대본</button></p><h2>${esc(sh.title)}</h2><p class="lead">${esc(sh.lead)}</p></div>
+    <header class="sheethead"><div><p class="eyebrow">실습 ${sh.no} · 워크시트 · ${sh.min}분 · <button type="button" class="linkbtn" data-goslide="${sh.slide}">${sh.slide}장 대본</button> · PPT ${pg(PRACTICE[sh.id].d.ws, `워크시트 ${PRACTICE[sh.id].d.ws}쪽`)} ${pg(PRACTICE[sh.id].d.ex, `예시 ${PRACTICE[sh.id].d.ex}쪽`)}</p><h2>${esc(sh.title)}</h2><p class="lead">${esc(sh.lead)}</p></div>
       <div class="meta"><span>팀명 <b>${esc(info.name || '______')}</b></span><span>지점 <b>${esc(info.store || '______')}</b></span><span>작성자 <b>${esc(info.author || '______')}</b></span><span id="net" class="net ok">저장됨</span></div></header>
     ${sh.banner ? `<div class="banner" data-banner>④ 최종 슬로건 · <b></b></div>` : ''}
+    ${learnBox(sh)}
     ${sh.formula ? `<div class="formula">작성 형식 &nbsp;${esc(sh.formula)}</div>` : ''}
     ${model ? `<div class="modelwrap"><div class="modelhead">예시 팀 MOOD SHIFT · 정답이 아니라 참고 예시예요 <button type="button" class="btn sm ghost" data-act="toggleModel">우리 조 시트로</button></div>${renderParts(sh, sh.model, true).replace(/<div class="(calc|poster|readaloud)"[^>]*><\/div>/g, '')}${sh.modelNote ? `<p class="note">${esc(sh.modelNote)}</p>` : ''}</div>` : renderParts(sh, d, false)}
     ${sh.foot ? `<p class="foot">${esc(sh.foot)}</p>` : ''}
@@ -693,6 +695,88 @@ function printSheets(ids, t = TEAM) {
   $$('textarea, input[type=text], select', box).forEach((el) => { const s = document.createElement('div'); s.className = 'pval'; s.textContent = el.value; el.replaceWith(s); });
   if (ids.includes('w9')) { const { amt } = w9Rows(sheetOf(t, 'w9')); $$('[data-auto]', box).forEach((el) => { const k = el.dataset.auto.replace('_amt', ''); el.textContent = amt[k] ? won(amt[k]) + '원' : '—'; }); }
   document.body.classList.add('printing'); window.print(); setTimeout(() => document.body.classList.remove('printing'), 500);
+}
+
+/* ───────────── 강의 PPT ───────────── */
+const DK = (n) => DECK[n - 1];
+const pptImg = (n) => `ppt/${String(n).padStart(3, '0')}.jpg`;
+const secOf = (n) => DECK_SECTIONS.find((x) => n >= x.from && n <= x.to);
+const pg = (n, label) => `<button type="button" class="pg" data-ppt="${n}">${label || n + '쪽'}</button>`;
+/* 이스케이프된 글 속 "44쪽", "40 · 58쪽", "83~85쪽"을 PPT 링크로 */
+const lk = (html) => html.replace(/(\d{1,3})((?:\s*[~·,]\s*\d{1,3})*)\s*쪽/g, (m, a, rest) => {
+  const nums = [a].concat((rest.match(/\d{1,3}/g) || [])); const seps = rest.match(/\s*[~·,]\s*/g) || [];
+  if (nums.some((x) => +x < 1 || +x > DECK.length)) return m;
+  return nums.map((x, i) => (i ? esc(seps[i - 1] || ' ') : '') + pg(+x, i === nums.length - 1 ? x + '쪽' : x)).join('');
+});
+const pgList = (arr) => arr.filter(Boolean).map((n) => pg(n)).join(' ');
+const TAG_CLS = { '멘트': 'say', '진행': 'go', '주의': 'warn', '근거': 'src', '강사용': 'go', '예시 문장': 'say', '완성 문장': 'say', '학생 질문 대비': 'go', '예시 답안 공개': 'go' };
+function deckBody(n, opt = {}) {
+  const d = DK(n); const sec = secOf(n); const lockedEx = exLocked() && / 예시 답안|· 예시/.test(d.title) ;
+  const notes = d.notes.map((x) => `<div class="dnote ${TAG_CLS[x.tag] || ''}"><b>${esc(x.tag)}</b><p>${lk(esc(x.text))}</p></div>`).join('');
+  return `<figure class="dimg ${lockedEx ? 'locked' : ''}">${lockedEx ? `<div class="lockbox"><b>예시 답안은 선생님이 공개하면 볼 수 있습니다.</b></div>` : `<img src="${pptImg(n)}" alt="${esc(d.title)} ${esc(d.step)} ${esc(d.head)}" loading="lazy" data-zoom="${n}">`}</figure>
+    ${d.links.length ? `<div class="dlinks"><b>🔗 이 장의 자료 링크 (눌러서 원문 확인)</b>${d.links.map((l) => `<a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.t)} ↗</a>`).join('')}</div>` : ''}
+    ${!lockedEx && notes ? `<div class="dnotes"><h4>발표자 노트</h4>${notes}</div>` : ''}
+    ${d.refs.length ? `<div class="drefs"><b>이 장에서 가리키는 쪽</b> ${pgList(d.refs)}</div>` : ''}
+    ${sec && sec.ws && !opt.noSheet ? `<div class="row"><button type="button" class="btn sm" data-gosheet="${sec.ws}">실습 ${SHEET(sec.ws).no} 활동지 열기</button></div>` : ''}`;
+}
+function vPpt() {
+  const n = cur.ppt; const d = DK(n); const q = (cur.pq || '').trim();
+  const hit = (x) => !q || [x.title, x.step, x.head, ...x.lines, ...x.notes.map((y) => y.text)].join(' ').includes(q);
+  const list = DECK_SECTIONS.map((sec) => { const items = DECK.slice(sec.from - 1, sec.to).filter(hit); if (!items.length) return '';
+    return `<div class="sgroup"><h5>${esc(sec.t)}</h5>${items.map((x) => `<button type="button" class="${x.n === n ? 'on' : ''}" data-goppt="${x.n}"><span class="num">${x.n}</span><span class="t">${esc(x.step || x.title).slice(0, 40)}${x.step ? `<small>${esc(x.head).slice(0, 36)}</small>` : ''}</span>${x.hidden ? '<i>숨김</i>' : ''}</button>`).join('')}</div>`; }).join('');
+  return `<div class="slidelayout">
+    <nav class="slidenav"><input type="search" id="pq" value="${esc(cur.pq || '')}" placeholder="PPT에서 찾기 (예: 도달, 리조이스)">${list || '<p class="muted">찾는 장이 없습니다.</p>'}</nav>
+    <article class="slide deck">
+      <header class="slidehead"><div><p class="eyebrow">강의 PPT · ${n} / ${DECK.length}쪽 · ${esc((secOf(n) || {}).t || '')}</p><h2>${esc(d.step ? d.title.replace(/^실습 [①-⑫]\s*/, '') + ' · ' + d.step : d.title)}</h2>${d.head ? `<p class="lead">${esc(d.head)}</p>` : ''}</div>
+        <div class="row">${IS_TEACHER() ? `<button type="button" class="btn sm" data-act="syncPpt">학생 화면을 ${n}쪽으로</button>` : ''}<a class="btn sm ghost" href="${pptImg(n)}" target="_blank" rel="noopener">그림 크게</a></div></header>
+      ${deckBody(n)}
+      <footer class="slidefoot"><button type="button" class="btn ghost" data-goppt="${Math.max(1, n - 1)}" ${n === 1 ? 'disabled' : ''}>← ${n > 1 ? n - 1 + '쪽' : ''}</button>
+        <button type="button" class="btn" data-goppt="${Math.min(DECK.length, n + 1)}" ${n === DECK.length ? 'disabled' : ''}>${n < DECK.length ? n + 1 + '쪽' : ''} →</button></footer>
+      <p class="muted small center">키보드 ← → 로 넘길 수 있습니다</p>
+    </article></div>`;
+}
+function goPpt(n) { cur.ppt = Math.min(DECK.length, Math.max(1, n)); store.set('cp2_ppt', cur.ppt); if (view !== 'ppt') { view = 'ppt'; store.set('cp2_view', view); } render(); window.scrollTo(0, 0); }
+/* 어디서든 PPT 한 장을 띄우는 창 */
+function openPpt(n) {
+  n = Math.min(DECK.length, Math.max(1, n)); const d = DK(n); const m = $('#modal');
+  m.innerHTML = `<div class="mbox" role="dialog" aria-label="강의 PPT ${n}쪽"><header><div><small>강의 PPT ${n}쪽 · ${esc((secOf(n) || {}).t || '')}</small><h3>${esc(d.step ? d.step + ' — ' + d.head : d.title)}</h3></div>
+    <div class="row"><button type="button" class="btn sm ghost" data-ppt="${n - 1}" ${n === 1 ? 'disabled' : ''}>←</button><button type="button" class="btn sm ghost" data-ppt="${n + 1}" ${n === DECK.length ? 'disabled' : ''}>→</button><button type="button" class="btn sm" data-goppt="${n}">PPT 탭에서 보기</button><button type="button" class="btn sm ghost" data-act="closeModal" aria-label="닫기">✕</button></div></header>
+    <div class="mscroll">${deckBody(n, { noSheet: view === 'sheet' })}</div></div>`;
+  m.hidden = false; document.body.classList.add('modal-open');
+}
+function closeModal() { $('#modal').hidden = true; document.body.classList.remove('modal-open'); }
+
+/* 활동지 위 "쉽게 이해하기" */
+function learnBox(sh) {
+  const P2 = PRACTICE[sh.id]; if (!P2) return ''; const d = P2.d; let tab = cur.lb || 'kid'; const open = store.get('cp2_lbopen', true);
+  const tabs = [['kid', '🧒 한마디로'], ['steps', `👣 따라 하기 (${d.steps.length})`], ['why', '💡 예시는 왜 이렇게?'], ['stuck', '🆘 막힐 때']].filter((x) => x[0] !== 'stuck' || d.stuck);
+  if (!tabs.some((x) => x[0] === tab)) tab = 'kid';
+  let body = '';
+  if (tab === 'kid') {
+    const qd = DK(d.q); const ql = qd.lines.slice(3, 6).filter((x) => !/^준비물/.test(x));
+    body = `<p class="kid">${esc(P2.kid)}</p><div class="fest"><b>🎪 학교 축제로 생각해 보기</b><p>${esc(P2.fest)}</p></div>
+      ${ql.length ? `<div class="qbox"><small>오늘의 질문 · ${pg(d.q)}</small>${ql.map((x) => `<p>${lk(esc(x))}</p>`).join('')}</div>` : ''}
+      <div class="pgrow"><b>이 실습 PPT</b> ${d.lect.length ? `이론 ${pgList(d.lect)} · ` : ''}질문 ${pg(d.q)} · 따라 하기 ${pg(d.steps[0])}~${pg(d.steps[d.steps.length - 1])} · 워크시트 ${pg(d.ws)} · ${d.stuck ? `막힐 때 ${pg(d.stuck)} · ` : ''}예시 ${pg(d.ex)} · 정리 ${pg(d.sum)}</div>`;
+  } else if (tab === 'steps') {
+    const i = Math.min(cur.lbStep || 0, d.steps.length - 1); const n = d.steps[i]; const x = DK(n);
+    const say = x.notes.filter((y) => /멘트|예시 문장|완성 문장/.test(y.tag)).map((y) => y.text).join(' ');
+    body = `<div class="stepnav">${d.steps.map((sn, k) => `<button type="button" class="${k === i ? 'on' : ''}" data-lbstep="${k}">${k + 1}. ${esc(DK(sn).step.replace(/^실습 [①-⑫] · \d+분$/, k === 0 ? '진행 순서' : '뼈대') || DK(sn).head.slice(0, 10))}</button>`).join('')}</div>
+      <div class="stepcard"><h4>${esc(x.step)} — ${esc(x.head)} <small>${pg(n)}</small></h4>
+        ${say ? `<div class="say"><small>강사</small><p>${lk(esc(say))}</p></div>` : ''}
+        <img src="${pptImg(n)}" alt="${esc(x.head)}" loading="lazy" data-zoom="${n}" class="stepimg">
+        ${x.links.length ? `<div class="dlinks"><b>🔗 자료 링크</b>${x.links.map((l) => `<a href="${esc(l.u)}" target="_blank" rel="noopener">${esc(l.t)} ↗</a>`).join('')}</div>` : ''}
+        ${x.notes.filter((y) => !/멘트|예시 문장|완성 문장/.test(y.tag)).map((y) => `<div class="dnote ${TAG_CLS[y.tag] || ''}"><b>${esc(y.tag)}</b><p>${lk(esc(y.text))}</p></div>`).join('')}
+        <div class="row"><button type="button" class="btn sm ghost" data-lbstep="${i - 1}" ${i === 0 ? 'disabled' : ''}>← 이전 걸음</button><button type="button" class="btn sm" data-lbstep="${i + 1}" ${i === d.steps.length - 1 ? 'disabled' : ''}>다음 걸음 →</button></div></div>`;
+  } else if (tab === 'why') {
+    body = exLocked() ? `<div class="lockbox"><b>예시 답안 설명은 선생님이 공개하면 볼 수 있습니다.</b><p class="muted">먼저 우리 조 생각으로 채워 보세요.</p></div>`
+      : `<p class="muted">정답이 아니라 참고 예시예요. 예시 팀 MOOD SHIFT가 칸마다 왜 이렇게 적었는지 쉬운 말로 풀었습니다. ${pg(d.ex, `예시 답안 ${d.ex}쪽`)}</p>
+      <div class="whys">${P2.easy.map((e, k) => `<article class="why"><header><span class="wn">${k + 1}</span><b>${esc(e.k)}</b></header><p class="wa">“${esc(e.a)}”</p><p>${lk(esc(e.why))}</p><div class="pgrow">근거 ${pgList(e.p)}</div></article>`).join('')}</div>`;
+  } else if (tab === 'stuck') {
+    const t = (DK(d.stuck).tables[0] || []).slice(1);
+    body = `<p class="muted">이런 상황이면 이렇게 생각해 보세요. ${pg(d.stuck)}</p><div class="stucks">${t.map((r) => `<div class="stuck"><p class="sq">🙋 ${lk(esc(r[0]))}</p><p class="sa">💬 ${lk(esc(r[1] || ''))}</p></div>`).join('')}</div>`;
+  }
+  return `<section class="learnbox"><header><h3>📘 이 실습 쉽게 이해하기</h3><button type="button" class="btn sm ghost" data-act="lbToggle">${open ? '접기' : '펼치기'}</button></header>
+    ${open ? `<div class="lbtabs">${tabs.map(([k, l]) => `<button type="button" class="${tab === k ? 'on' : ''}" data-lb="${k}">${l}</button>`).join('')}</div><div class="lbbody">${body}</div>` : ''}</section>`;
 }
 
 /* ───────────── 프로모션 vs 캠페인 ───────────── */
@@ -817,6 +901,10 @@ document.addEventListener('click', async (e) => {
   if (ds.view) return go(ds.view);
   if (ds.follow !== undefined) return goSlide(num(S.control.slide));
   if (ds.goslide) return goSlide(num(ds.goslide));
+  if (ds.ppt) { e.preventDefault(); return openPpt(num(ds.ppt)); }
+  if (ds.goppt) { closeModal(); return goPpt(num(ds.goppt)); }
+  if (ds.lb) { cur.lb = ds.lb; const y = scrollY; render(); scrollTo(0, y); return; }
+  if (ds.lbstep != null) { cur.lbStep = Number(ds.lbstep); const y = scrollY; render(); scrollTo(0, y); return; }
   if (ds.copy) {
     const s = SL(cur.slide); const g = stageOf(s.no);
     if (!canCopy(s.no)) return toast('예시 답안은 선생님이 공개하면 복사할 수 있습니다');
@@ -827,8 +915,8 @@ document.addEventListener('click', async (e) => {
   if (ds.copyline != null) { const x = SL(cur.slide).script[Number(ds.copyline)]; return copyText(x.say, '문장을'); }
   if (ds.team) { TEAM = ds.team; store.set('cp2_team', TEAM); return render(); }
   if (ds.game !== undefined) { cur.game = ds.game || null; if (view !== 'game') { view = 'game'; store.set('cp2_view', view); } LS = null; WQ = null; SQ = null; if (LG(cur.game) && LG(cur.game).type === 'calc' && P.best.g6 == null) best('g6', 1); render(); return scrollTo(0, 0); }
-  if (ds.sheet) { cur.sheet = ds.sheet; store.set('cp2_sheet', ds.sheet); showModel = false; lastField = null; render(); return scrollTo(0, 0); }
-  if (ds.gosheet) { cur.sheet = ds.gosheet; store.set('cp2_sheet', ds.gosheet); showModel = false; return go('sheet'); }
+  if (ds.sheet) { cur.lbStep = 0; cur.sheet = ds.sheet; store.set('cp2_sheet', ds.sheet); showModel = false; lastField = null; render(); return scrollTo(0, 0); }
+  if (ds.gosheet) { closeModal(); cur.lbStep = 0; cur.sheet = ds.gosheet; store.set('cp2_sheet', ds.gosheet); showModel = false; return go('sheet'); }
   if (ds.term) { const t = TERMS.find((x) => x.t === ds.term); $('#termPop').innerHTML = `<div class="card termpop"><b>${esc(t.t)}</b> <small class="muted">${esc(t.cat)}</small><p>${esc(t.d)}</p><label class="chk"><input type="checkbox" data-know="${esc(t.t)}" ${P.known.has(t.t) ? 'checked' : ''}><span>알아요</span></label></div>`; return; }
   if (ds.know !== undefined) { P.known.add(ds.know); saveP(); card.flip = false; return render(); }
   if (ds.gcat !== undefined) { cur.gcat = ds.gcat; card = { i: 0, flip: false }; return render(); }
@@ -864,6 +952,9 @@ document.addEventListener('click', async (e) => {
   if (ds.greset) { if (!confirm('이 게임의 모든 조 기록을 지울까요?')) return; await api('/api/gamereset', { g: ds.greset }); return poll(); }
   const A = {
     saveTeam: async () => { await api('/api/team', { team: TEAM, name: $('#tName').value, author: $('#tAuthor').value, store: $('#tStore').value }); toast('저장했습니다'); poll(); },
+    closeModal: () => closeModal(),
+    lbToggle: () => { store.set('cp2_lbopen', !store.get('cp2_lbopen', true)); const y = scrollY; render(); scrollTo(0, y); },
+    syncPpt: () => { control('pptSlide', cur.ppt); toast(`학생 화면을 PPT ${cur.ppt}쪽으로 맞췄습니다`); },
     seen: () => { if (P.seen.has(cur.slide)) P.seen.delete(cur.slide); else P.seen.add(cur.slide); saveP(); render(); },
     nextSlide: () => { P.seen.add(cur.slide); saveP(); goSlide(cur.slide + 1); },
     toggleHide: () => { P.hide = !P.hide; saveP(); render(); },
@@ -911,6 +1002,7 @@ document.addEventListener('input', (e) => {
   if (el.dataset.eval) { el.nextElementSibling.textContent = el.value; saveEval(); return; }
   if (el.id === 'evalNote') { saveEval(); return; }
   if (el.dataset.calcK) { CALC[el.dataset.calcK] = Number(el.value); if (P.best.g6 == null) best('g6', 1); const k = el.dataset.calcK; const y = scrollY; render(); scrollTo(0, y); const again = $(`[data-calc-k="${k}"]`); if (again) again.focus(); return; }
+  if (el.id === 'pq') { cur.pq = el.value; const pos = el.selectionStart; render(); const q = $('#pq'); q.focus(); q.setSelectionRange(pos, pos); return; }
   if (el.id === 'gq') { cur.gq = el.value; const pos = el.selectionStart; render(); const q = $('#gq'); q.focus(); q.setSelectionRange(pos, pos); }
 });
 document.addEventListener('change', (e) => {
@@ -922,8 +1014,12 @@ document.addEventListener('change', (e) => {
   if (el.id === 'evalTo') { evalTo = el.value; return render(); }
   if (el.id === 'peekCmp') { peek.cmp = el.value; return render(); }
 });
+document.addEventListener('click', (e) => { const im = e.target.closest('img[data-zoom]'); if (im && !im.closest('.mbox')) openPpt(num(im.dataset.zoom)); else if (e.target.id === 'modal') closeModal(); });
 document.addEventListener('focusin', (e) => { if (e.target.matches('#sheet textarea[data-k]:not([disabled])')) lastField = e.target; });
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('#modal').hidden) return closeModal();
+  if (!$('#modal').hidden && /Arrow(Left|Right)/.test(e.key)) { const n = num(($('#modal [data-goppt]') || {}).dataset?.goppt); return openPpt(n + (e.key === 'ArrowRight' ? 1 : -1)); }
+  if (view === 'ppt' && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) { if (e.key === 'ArrowRight') return goPpt(cur.ppt + 1); if (e.key === 'ArrowLeft') return goPpt(cur.ppt - 1); }
   if (view !== 'slides' || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '')) return;
   if (e.key === 'ArrowRight') { P.seen.add(cur.slide); saveP(); goSlide(cur.slide + 1); }
   if (e.key === 'ArrowLeft') goSlide(cur.slide - 1);

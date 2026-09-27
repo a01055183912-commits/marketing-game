@@ -53,7 +53,7 @@ function cleanFlat(o) {
   return out;
 }
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.jpg': 'image/jpeg' };
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
@@ -113,7 +113,7 @@ const server = http.createServer(async (req, res) => {
     if (!file.startsWith(PUBLIC + path.sep) || !TYPES[path.extname(file)]) return send(res, 404, { error: 'not found' });
     return fs.stat(file, (err, st) => {
       if (err || !st.isFile()) return send(res, 404, { error: 'not found' });
-      res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)], 'Cache-Control': 'no-cache' });
+      res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)], 'Cache-Control': path.extname(file) === '.jpg' ? 'public, max-age=86400' : 'no-cache' });
       fs.createReadStream(file).pipe(res);
     });
   }

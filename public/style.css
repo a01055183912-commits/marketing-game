@@ -487,3 +487,69 @@ body.big .progstrip{display:none}
   .mrow{flex-direction:column;align-items:stretch} .mopts{justify-content:flex-start}
   .lgame{padding:16px} .say p{font-size:17px}
 }
+
+/* ───── 강의 PPT ───── */
+.pg{border:1px solid var(--blue);background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:1px 9px;font-size:.86em;font-weight:700;cursor:pointer;white-space:nowrap}
+.pg:hover{background:var(--blue);color:#fff}
+.slide.deck{max-width:1100px}
+.dimg{margin:0 0 12px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.dimg img{display:block;width:100%;height:auto;cursor:zoom-in}
+.dimg.locked{padding:30px;text-align:center;background:var(--surface)}
+.dlinks{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:var(--blue-soft);border-radius:12px;padding:10px 14px;margin:10px 0}
+.dlinks b{width:100%;color:var(--blue);font-size:14px}
+.dlinks a{color:var(--blue);font-weight:700;text-decoration:none;border-bottom:1px dashed var(--blue)}
+.dnotes h4{font-family:var(--body);font-weight:700;font-size:14px;color:var(--muted);margin:10px 0 6px}
+.dnote{display:grid;grid-template-columns:88px 1fr;gap:8px;border-left:4px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 12px;margin:6px 0}
+.dnote b{font-size:13px;color:var(--muted)} .dnote p{margin:0;white-space:pre-line}
+.dnote.say{border-color:var(--red)} .dnote.say b{color:var(--red)}
+.dnote.go{border-color:var(--green)} .dnote.go b{color:var(--green)}
+.dnote.warn{border-color:var(--amber);background:var(--amber-soft)} .dnote.warn b{color:var(--amber)}
+.dnote.src{border-color:var(--blue)} .dnote.src b{color:var(--blue)}
+.drefs{margin:10px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.drefs b{font-size:13px;color:var(--muted)}
+.slidenav input[type=search]{margin-bottom:8px}
+.sgroup button small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+.sgroup button i{color:var(--amber);font-size:11px}
+.modal{position:fixed;inset:0;z-index:60;background:rgba(20,16,14,.6);display:flex;align-items:flex-start;justify-content:center;padding:3vh 12px;overflow:auto}
+.mbox{background:var(--bg);border-radius:16px;max-width:1100px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.mbox header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);border-radius:16px 16px 0 0;z-index:1}
+.mbox header h3{font-size:19px} .mbox header small{color:var(--muted)}
+.mscroll{padding:14px 18px 18px}
+body.modal-open{overflow:hidden}
+
+/* ───── 쉽게 이해하기 ───── */
+.learnbox{border:2px solid var(--blue);border-radius:16px;margin:12px 0 16px;background:var(--bg);overflow:hidden}
+.learnbox>header{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--blue-soft);padding:10px 14px}
+.learnbox>header h3{font-size:20px;color:var(--blue)}
+.lbtabs{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px 0}
+.lbtabs button{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 14px;font-weight:700}
+.lbtabs button.on{border-color:var(--blue);background:var(--blue);color:#fff}
+.lbbody{padding:12px 14px 16px}
+.kid{font-size:20px;font-weight:700;line-height:1.5;margin:4px 0 10px}
+.fest{background:var(--amber-soft);border-radius:12px;padding:12px 14px}
+.fest b{color:var(--amber)} .fest p{margin:6px 0 0;font-size:16px}
+.qbox{border-left:4px solid var(--red);padding:6px 12px;margin:12px 0;background:var(--surface);border-radius:6px}
+.qbox small{color:var(--muted)} .qbox p{margin:4px 0}
+.pgrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px;margin-top:10px}
+.pgrow b{color:var(--muted);font-size:13px}
+.stepnav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.stepnav button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:13px}
+.stepnav button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.stepcard h4{font-size:19px;margin-bottom:8px}
+.stepcard .say{margin-bottom:10px}
+.stepimg{width:100%;border:1px solid var(--line);border-radius:10px;cursor:zoom-in;display:block;margin:6px 0}
+.whys{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px;margin-top:8px}
+.why{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface);display:flex;flex-direction:column;gap:4px}
+.why header{display:flex;gap:8px;align-items:center}
+.why .wn{display:inline-flex;width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:none}
+.why .wa{font-weight:600;color:var(--red);margin:2px 0}
+.why p{margin:2px 0;font-size:15px}
+.why .pgrow{margin-top:auto;padding-top:6px}
+.stucks{display:flex;flex-direction:column;gap:8px}
+.stuck{border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.stuck .sq{font-weight:700;margin:0 0 4px} .stuck .sa{margin:0;color:var(--green)}
+@media (max-width:760px){
+  .dnote{grid-template-columns:1fr}
+  .kid{font-size:18px}
+  .whys{grid-template-columns:1fr}
+}
