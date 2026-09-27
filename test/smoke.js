@@ -1,0 +1,42 @@
+// 서버 API 점검: node test/smoke.js (외부 패키지 없음)
+const { spawn } = require('child_process');
+const fs = require('fs'); const os = require('os'); const path = require('path');
+const assert = require('assert');
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cp-'));
+const PORT = 3999;
+const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, DATA_DIR: dir }, stdio: 'ignore' });
+const U = (p) => `http://127.0.0.1:${PORT}${p}`;
+const post = (p, b) => fetch(U(p), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+(async () => {
+  for (let i = 0; i < 30; i++) { try { await fetch(U('/health')); break; } catch (e) { await wait(100); } }
+  let s = await (await fetch(U('/api/state'))).json();
+  assert.equal(s.control.teamCount, 4);
+  assert.equal((await fetch(U('/api/state?v=' + s.v))).status, 204);
+  assert.equal((await post('/api/sheet', { team: 'team1', ws: 'w1', k: 'mainNum', v: '1500' })).status, 200);
+  assert.equal((await post('/api/sheet', { team: 'team9', ws: 'w1', k: 'x', v: '1' })).status, 400);
+  assert.equal((await post('/api/sheet', { team: 'team1', ws: 'w13', k: 'x', v: '1' })).status, 400);
+  assert.equal((await post('/api/game', { team: 'team2', g: 'bingo', data: { marks: [1, 2], lines: 0, evil: { a: 1 } } })).status, 200);
+  assert.equal((await post('/api/eval', { from: 'team1', to: 'team1', data: {} })).status, 400);
+  assert.equal((await post('/api/eval', { from: 'team1', to: 'team2', data: { c1: 99, c2: 10, note: 'good' } })).status, 200);
+  assert.equal((await post('/api/control', { key: 'bingoIdx', value: 3 })).status, 200);
+  assert.equal((await post('/api/control', { key: 'x', value: { a: 1 } })).status, 400);
+  s = await (await fetch(U('/api/state'))).json();
+  assert.equal(s.sheets.team1.w1.mainNum, '1500');
+  assert.deepEqual(s.games.bingo.team2.marks, [1, 2]); assert.equal(s.games.bingo.team2.evil, undefined);
+  assert.equal(s.evals.team1.team2.c1, 25);
+  assert.equal(s.control.bingoIdx, 3);
+  await post('/api/gamereset', { g: 'bingo' });
+  s = await (await fetch(U('/api/state'))).json();
+  assert.equal(s.control.bingoIdx, -1); assert.deepEqual(s.games.bingo, {});
+  for (const f of ['/', '/app.js', '/data.js', '/style.css']) assert.equal((await fetch(U(f))).status, 200, f);
+  assert.equal((await fetch(U('/../server.js'))).status, 404);
+  assert.equal((await fetch(U('/%2e%2e/server.js'))).status, 404);
+  await post('/api/reset', {});
+  s = await (await fetch(U('/api/state'))).json();
+  assert.deepEqual(s.sheets, {});
+  await wait(400);
+  assert.ok(fs.existsSync(path.join(dir, 'state.json')));
+  console.log('smoke ok');
+  srv.kill(); process.exit(0);
+})().catch((e) => { console.error(e); srv.kill(); process.exit(1); });
