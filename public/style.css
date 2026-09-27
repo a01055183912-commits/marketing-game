@@ -425,3 +425,18 @@ table.cmp2 thead th:nth-child(2){color:var(--red)}
   .timerchip b{font-size:20px}
   .timerchip{right:8px;bottom:8px;padding:6px 12px}
 }
+
+/* 복사 */
+.copybar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.copybar span{font-size:13px;font-weight:700;color:var(--muted);margin-right:2px}
+.core{position:relative}
+.script blockquote{position:relative;padding-right:64px}
+.copyone{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:8px;font-size:12px;padding:3px 8px;cursor:pointer}
+.copyone:hover{color:var(--red);border-color:var(--red)}
+.script blockquote .copyone{position:absolute;right:8px;top:10px;opacity:.55}
+.script blockquote:hover .copyone,.copyone:focus-visible{opacity:1}
+.core .copyone{position:absolute;right:12px;top:12px}
+.copyone.light{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.5)}
+.script.hidden .copyone{display:none}
+body.big .copybar{display:none}
+@media print{.copybar,.copyone{display:none}}

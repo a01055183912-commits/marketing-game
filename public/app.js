@@ -366,6 +366,38 @@ function flowTable() {
     <td>${g.ws.length ? g.ws.map((ws) => { const s = SHEET(ws); return `<button type="button" class="linkbtn" data-gosheet="${ws}">실습 ${s.no} ${esc(s.title)} (${s.min}분)</button>`; }).join('<br>') : '—'}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
+/* ───────────── 복사 ───────────── */
+async function copyText(text, label) {
+  let ok = false;
+  try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; } } catch (e) { ok = false; }
+  if (!ok) {   // http 주소·구형 브라우저용
+    const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch (e) { ok = false; } ta.remove();
+  }
+  toast(ok ? `${label} 복사했습니다` : '복사하지 못했습니다 · 글자를 길게 눌러 직접 복사하십시오');
+}
+const lines = (arr) => arr.filter(Boolean).join('\n');
+const scriptText = (s) => lines(s.script.map((x) => x.say ? `“${x.say}”` : `(${x.do})`));
+function slideText2(s, mode) {
+  if (mode === 'core') return s.core;
+  if (mode === 'script') return scriptText(s);
+  if (mode === 'next') return s.next;
+  const table = s.table.length ? lines(s.table.map((r) => r.join(' | '))) : '';
+  return lines([
+    `[${s.no}장] ${s.title}`,
+    isEx(s.no) ? '※ 정답이 아니라 참고 예시예요.' : '',
+    `■ 핵심: ${s.core}`,
+    s.know.length || s.bullets.length ? `■ 선생님이 먼저 알아 둘 것\n${lines(s.know.concat(s.bullets.map((b) => '- ' + b)))}` : '',
+    table ? `■ 표\n${table}` : '',
+    s.req.length ? `■ 담당자 요청: ${s.req.join(' / ')}` : '',
+    s.script.length ? `■ 대본\n${scriptText(s)}` : '',
+    s.steps ? `■ 진행 순서: ${s.steps}` : '', s.watch ? `■ 돌면서 볼 것: ${s.watch}` : '',
+    s.next ? `■ 넘어가는 한마디: ${s.next}` : '',
+  ]);
+}
+const canCopy = (n) => !(isEx(n) && exLocked());
+const copyRange = (from, to, mode) => SLIDES.slice(from - 1, to).filter((s) => canCopy(s.no)).map((s) => mode === 'script' ? lines([`[${s.no}장] ${s.title}`, scriptText(s)]) : slideText2(s, 'all')).join('\n\n────────\n\n');
+
 /* ───────────── 장별 대본 ───────────── */
 function vSlides() {
   const s = SL(cur.slide); const g = stageOf(s.no); const sh = sheetBySlide(s.no); const ex = isEx(s.no); const locked = ex && exLocked();
@@ -377,15 +409,16 @@ function vSlides() {
       <header class="slidehead"><div><p class="eyebrow">${esc(g.t)} · ${s.no} / 56</p><h2>${s.no}장 · ${esc(s.title)}</h2></div>
         <div class="row"><button type="button" class="btn sm ghost" data-act="toggleHide">${P.hide ? '대본 보이기' : '대본 가리기 (연습)'}</button><button type="button" class="btn sm ghost" data-act="toggleBig">${P.big ? '작게 보기' : '크게 보기 (강의 모드)'}</button>
         ${IS_TEACHER() ? `<button type="button" class="btn sm" data-act="syncSlide">학생 화면을 ${s.no}장으로</button>` : ''}</div></header>
+      ${locked ? '' : `<div class="copybar"><span>복사</span><button type="button" class="btn sm ghost" data-copy="all">📋 이 장 전체</button><button type="button" class="btn sm ghost" data-copy="script">📋 대본만</button><button type="button" class="btn sm ghost" data-copy="core">📋 핵심 한 줄</button><button type="button" class="btn sm ghost" data-copy="stage">📋 ${esc(g.t)} (${g.from}~${g.to}장)</button><button type="button" class="btn sm ghost" data-copy="allScript">📋 1~56장 대본 전체</button></div>`}
       ${locked ? `<div class="card lockbox"><b>예시 답안은 선생님이 공개하면 볼 수 있습니다.</b><p class="muted">먼저 우리 조 활동지를 채우십시오.</p>${sh ? `<button type="button" class="btn" data-gosheet="${sh.id}">실습 ${sh.no} 활동지로</button>` : ''}</div>` : `
       ${ex ? `<p class="exnote">정답이 아니라 참고 예시예요.</p>` : ''}
-      <div class="core"><small>핵심</small><p>${esc(s.core)}</p></div>
+      <div class="core"><small>핵심</small><p>${esc(s.core)}</p><button type="button" class="copyone light" data-copy="core" title="핵심 복사">복사</button></div>
       ${s.know.length || s.bullets.length ? `<section class="know"><h4>선생님이 먼저 알아 둘 것</h4>${s.know.map((k) => `<p>${esc(k)}</p>`).join('')}${s.bullets.length ? `<ul>${s.bullets.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}</section>` : ''}
       ${s.table.length ? `<div class="tblwrap"><table class="ws res"><thead><tr>${s.table[0].map((c) => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.table.slice(1).map((r) => `<tr>${r.map((c, i) => i ? `<td>${esc(c)}</td>` : `<th>${esc(c)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
       ${s.req.map((r) => `<p class="req"><b>담당자 요청</b> ${esc(r)}</p>`).join('')}
-      <section class="script ${P.hide ? 'hidden' : ''}"><h4>대본</h4>${s.script.map((x) => x.say ? `<blockquote>“${esc(x.say)}”</blockquote>` : `<p class="do">(${esc(x.do)})</p>`).join('')}${P.hide ? '<button type="button" class="btn sm" data-act="peekScript">눌러서 잠깐 보기</button>' : ''}</section>
+      <section class="script ${P.hide ? 'hidden' : ''}"><h4>대본</h4>${s.script.map((x, i) => x.say ? `<blockquote>“${esc(x.say)}”<button type="button" class="copyone" data-copyline="${i}" title="이 문장 복사">복사</button></blockquote>` : `<p class="do">(${esc(x.do)})</p>`).join('')}${P.hide ? '<button type="button" class="btn sm" data-act="peekScript">눌러서 잠깐 보기</button>' : ''}</section>
       ${s.steps || s.watch ? `<section class="practice">${s.steps ? `<div><h4>진행 순서</h4><p>${esc(s.steps)}</p></div>` : ''}${s.watch ? `<div><h4>돌면서 볼 것</h4><p>${esc(s.watch)}</p></div>` : ''}</section>` : ''}
-      ${s.next ? `<p class="nextline"><small>넘어가는 한마디</small> ${esc(s.next)}</p>` : ''}`}
+      ${s.next ? `<p class="nextline"><small>넘어가는 한마디</small> ${esc(s.next)} <button type="button" class="copyone" data-copy="next" title="넘어가는 한마디 복사">복사</button></p>` : ''}`}
       ${sh ? `<div class="row slidelinks">${sh.slide === s.no ? `<button type="button" class="btn" data-gosheet="${sh.id}">실습 ${sh.no} 활동지 열기 (${sh.min}분)</button>${IS_TEACHER() ? `<button type="button" class="btn ghost" data-timer="${sh.id}">${sh.min}분 타이머 시작</button>` : ''}<button type="button" class="btn ghost" data-goslide="${sh.ex}">예시 답안 장 (${sh.ex}장)</button>` : `<button type="button" class="btn ghost" data-gosheet="${sh.id}">실습 ${sh.no} 활동지에서 비교하기</button>`}</div>` : ''}
       ${terms.length ? `<div class="chips"><small>이 장의 용어</small>${terms.map((t) => `<button type="button" class="chip sm" data-term="${esc(t)}">${esc(t)}</button>`).join('')}</div><div id="termPop"></div>` : ''}
       <footer class="slidefoot">
@@ -749,6 +782,14 @@ document.addEventListener('click', async (e) => {
   if (ds.view) return go(ds.view);
   if (ds.follow !== undefined) return goSlide(num(S.control.slide));
   if (ds.goslide) return goSlide(num(ds.goslide));
+  if (ds.copy) {
+    const s = SL(cur.slide); const g = stageOf(s.no);
+    if (!canCopy(s.no)) return toast('예시 답안은 선생님이 공개하면 복사할 수 있습니다');
+    const M = { all: [slideText2(s, 'all'), `${s.no}장 전체를`], script: [slideText2(s, 'script'), `${s.no}장 대본을`], core: [s.core, '핵심 한 줄을'], next: [s.next, '넘어가는 한마디를'],
+      stage: [copyRange(g.from, g.to, 'all'), `${g.t} ${g.from}~${g.to}장을`], allScript: [copyRange(1, 56, 'script'), '1~56장 대본 전체를'] }[ds.copy];
+    return copyText(M[0], M[1]);
+  }
+  if (ds.copyline != null) { const x = SL(cur.slide).script[Number(ds.copyline)]; return copyText(x.say, '문장을'); }
   if (ds.team) { TEAM = ds.team; store.set('cp2_team', TEAM); return render(); }
   if (ds.game !== undefined) { cur.game = ds.game || null; if (view !== 'game') { view = 'game'; store.set('cp2_view', view); } CQ = null; MM = null; WQ = null; SQ = null; render(); return scrollTo(0, 0); }
   if (ds.sheet) { cur.sheet = ds.sheet; store.set('cp2_sheet', ds.sheet); showModel = false; lastField = null; render(); return scrollTo(0, 0); }
